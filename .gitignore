@@ -1,0 +1,7 @@
+build/
+dist/
+*.apk
+*.keystore
+key.pass
+*.odex
+.DS_Store
