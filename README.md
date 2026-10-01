@@ -9,7 +9,7 @@
 ![Language](https://img.shields.io/badge/lang-smali%20%2B%20Java-orange)
 ![License](https://img.shields.io/badge/license-MIT-black)
 
-[What & why](#what--why) · [Features](#features) · [How it works](#how-it-works) · [Reproduce](#reproduce) · [Limitations](#limitations) · [References](#references) · [Читать по-русски](#русский)
+[What & why](#what--why) · [Layouts](#layouts) · [Features](#features) · [How it works](#how-it-works) · [Reproduce](#reproduce) · [Limitations](#limitations) · [References](#references) · [Читать по-русски](#русский)
 
 </div>
 
@@ -39,6 +39,22 @@ So this project patches the stock IME itself:
 
 Because it *is* the stock app, every soft-keyboard feature survives:
 prediction bar, swipe word-selection, cursor gestures, emoji, voice input.
+
+## Layouts
+
+**Stock firmware** — the RU layout as the phone actually maps it: shifted off
+ЙЦУКЕН by one key, and seven letters have no key at all. There is no double-tap
+cycling, Sym/Fn give nothing, long-press only uppercases — ц щ ъ ы э ч ё
+simply cannot be typed:
+
+![Stock firmware RU layout on the Titan 2 Elite: three key rows shifted by one key (й у к е н г ш з х ю / ф в а п р о л д ж / я с м и т ь б), plus seven dashed ghost keys for the unreachable letters ц щ ъ ы э ч ё, struck through in red](docs/stock-layout.png)
+
+**After the patch** — standard ЙЦУКЕН on all keys. The green corner marks are
+the recovered letters: tap the key repeatedly to cycle (`е→ё`, `з→х→ъ`,
+`д→ж→э`, `ь→б→ю`), or hold it for the last letter of the cycle. Alt+Space
+switches RU ⇄ EN on the fly:
+
+![Patched RU layout: standard йцукен rows (й ц у к е н г ш щ з / ф ы в а п р о л д / я ч с м и т ь) with green corner marks on four keys for the cycled letters: ё, хъ, жэ, бю](docs/patched-layout.png)
 
 ## Features
 
@@ -134,7 +150,7 @@ device.
 
 **Стандартный ЙЦУКЕН на физической клавиатуре Unihertz Titan 2 Elite — патчем штатной клавиатуры**
 
-[Что и почему](#что-и-почему) · [Возможности](#возможности) · [Как устроено](#как-устроено) · [Повторить](#повторить) · [Ограничения](#ограничения-1)
+[Что и почему](#что-и-почему) · [Раскладки](#раскладки) · [Возможности](#возможности) · [Как устроено](#как-устроено) · [Повторить](#повторить) · [Ограничения](#ограничения-1)
 
 </div>
 
@@ -156,6 +172,22 @@ Titan 2 работают; оттуда идея — [mellen9999/titan-layout](ht
 на крайних клавишах рядов + живой переключатель **RU ⇄ EN на Alt+Space**.
 Поскольку это и есть стоковое приложение — сохраняются все его фишки:
 строка подсказок, свайпы, эмодзи, голосовой ввод.
+
+## Раскладки
+
+**Сток** — «русская» раскладка, как её реально мапит прошивка: сдвинута от
+ЙЦУКЕН на одну клавишу, и у семи букв вообще нет клавиши. Тап-тап нет,
+Sym/Fn ничего не дают, долгое нажатие — только заглавная: набрать
+ц щ ъ ы э ч ё невозможно никак:
+
+![Стоковая RU-раскладка Titan 2 Elite: три ряда клавиш, сдвинутые на одну клавишу (й у к е н г ш з х ю / ф в а п р о л д ж / я с м и т ь б), плюс семь пунктирных «призрачных» клавиш для недостижимых букв ц щ ъ ы э ч ё, перечёркнутых красным](docs/stock-layout.png)
+
+**После патча** — стандартный ЙЦУКЕН на всех клавишах. Зелёные уголки —
+возвращённые буквы: повторные тапы по клавише циклят (`е→ё`, `з→х→ъ`,
+`д→ж→э`, `ь→б→ю`), удержание даёт последнюю букву цикла. Alt+Space
+переключает RU ⇄ EN на лету:
+
+![Патченная RU-раскладка: стандартный йцукен (й ц у к е н г ш щ з / ф ы в а п р о л д / я ч с м и т ь), зелёные уголки на четырёх клавишах — циклические буквы: ё, хъ, жэ, бю](docs/patched-layout.png)
 
 ## Возможности
 
