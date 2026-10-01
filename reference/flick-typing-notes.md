@@ -1,47 +1,62 @@
-# Flick typing on the clone — investigation status (open)
+# Flick typing on the clone — SOLVED (root cause)
 
-## Symptom
+## Status
 
-With the stock IME, swipe gestures on the physical keyboard ("flick typing")
-worked. With the clone (`com.iqqijni.bbkeyboardjc`) they stopped, although
-`adb shell settings get system flick_typing_enabled` → `1`.
+**Dead by firmware design.** Flick gestures ("flick typing" = swiping the
+keyboard's touch surface to scroll the suggestion bar) are delivered only to
+IMEs on a hardcoded one-entry allowlist — the stock package. A renamed clone
+can never receive them, regardless of settings. Verified with the on-screen
+keyboard visible too (rules out the `isInputViewShown` hypothesis).
 
-## What is established
+## The full chain (reverse-engineered from services.jar + overlays)
 
-- `flick_typing_enabled` is a **system (ROM) setting**; its toggle lives in the
-  Unihertz settings app (`/system_ext/app/AguiOtherSettings`).
-- The setting is read at runtime by the **platform itself**: the string
-  `flick_typing_enabled` is referenced inside
-  `/system/framework/framework.jar` and `/system/framework/services.jar`
-  (fields `mFlickTypingEnabled`, method `updateFlickTyping` — exact owning
-  class not yet identified; dexdump extraction attempts were inconclusive).
-- The keyboard's capacitive layer is a separate input device **touchPad**
-  (`/dev/input/event4`, `KEYBOARD | TOUCH | TOUCH_MT`).
-- Case-insensitive "flick" strings exist in the stock
-  `/product/app/KikaInputMethod/KikaInputMethod.apk` and in `lib/arm64/libmjp.so`
-  (the same native libs are inside the clone).
-- In the decompiled Kika java sources, "flick" appears only in the bundled
-  Japanese Mozc protobuf — i.e. the visible java layer of the IME does not
-  implement it; any IME-side logic is native.
+```
+touchPad input device (/dev/input/event4, KEYBOARD|TOUCH|TOUCH_MT)
+  → InputManagerService (system_server)
+      mFlickTypingEnabled      ← InputSettingsObserver.updateFlickTyping()
+                                  reads Settings.System "flick_typing_enabled"
+      mTouchpadImeCandidate    ← initImeCandidateBarOffset() reads framework
+                                  string-array config_touchpadImeCandidateBarOffsets
+                                  (entries "imeId:candidateBarOffsetPx")
+      isImeAllowedForCandidateSwipe(imeId):
+          mFlickTypingEnabled && mTouchpadImeCandidate.containsKey(imeId)
+```
 
-## Hypotheses (unverified)
+The array is empty in stock AOSP framework-res and filled by a runtime
+overlay shipped in the firmware:
 
-1. The framework forwards touchPad gestures to the IME session
-   (`InputMethodSession.dispatch*`) — this should be package-agnostic and work
-   with the clone; possibly it requires the soft input view to be shown
-   (`isInputViewShown`) — quick test: does flick work with the on-screen
-   keyboard visible (Ctrl+Space)?
-2. The framework (or a ROM service) binds the gesture feed to the IME by
-   package name from `ro.agui.inputmethod_default` or by the selected-subtype
-   state — then the renamed clone can never receive it.
-3. The feature needs state inside the stock app's data (first-run opt-in)
-   that the fresh clone never got.
+```
+/product/overlay/framework-res__sys_mssi_64_64only_ww_armv82_g72_dfl_eea__auto_generated_rro_product.apk
+    array/config_touchpadImeCandidateBarOffsets = [ "com.iqqijni.bbkeyboard:10" ]
+```
 
-## Next steps if resumed
+Exactly one entry — the stock IME package. Our clone
+(`com.iqqijni.bbkeyboardjc`) fails `containsKey` → gestures are dropped
+before they ever reach the IME.
 
-- Identify the owning class of `mFlickTypingEnabled` / `updateFlickTyping`
-  in services.jar (baksmali instead of dexdump), read its logic.
-- Capture a flick gesture on the stock IME vs the clone
-  (`adb shell getevent -lt /dev/input/event4` + logcat) and diff what the
-  framework does with it.
-- Test flick with the soft keyboard visible on the clone.
+## Why there is no fix without root
+
+- The array lives in a firmware overlay on the read-only `/product` partition.
+- `adb shell cmd overlay fabricate` (runtime resource patching) →
+  **"must be root to fabricate overlays through the shell"**.
+- Installing a replacement RRO that targets `android` (framework) requires
+  the overlay to be preinstalled or signed with the platform key — a normal
+  `adb install`-ed overlay is rejected by overlay policy.
+- Renaming the clone back to `com.iqqijni.bbkeyboard` is impossible: it would
+  be an "update" of the preinstalled system app and fails the signature check.
+
+With root (Magisk etc.) one command would fix it, e.g. fabricate the array to
+`["com.iqqijni.bbkeyboard:10","com.iqqijni.bbkeyboardjc:10"]` or edit the RRO.
+
+## What still works without flick
+
+The suggestion/candidate bar itself works normally on the clone — you can
+tap suggestions with your finger on the touchscreen; only the
+swipe-on-physical-keys shortcut is gated.
+
+## Talking point
+
+This is a good exhibit for feedback to Unihertz: even a byte-identical clone
+of their own IME loses flick typing because the gesture pipeline is locked to
+a hardcoded package name — third-party or customized keyboards can never be
+first-class citizens on this firmware.
